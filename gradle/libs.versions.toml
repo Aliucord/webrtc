@@ -1,0 +1,11 @@
+[versions]
+android-gradle = "8.13.2"
+annotation = "1.10.0"
+kotlin = "2.3.0"
+
+[libraries]
+annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
+
+[plugins]
+android-library = { id = "com.android.library", version.ref = "android-gradle" }
+kotlin = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

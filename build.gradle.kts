@@ -1,9 +1,8 @@
 // Source stamp 2024-12-12T04:05:15 @ 53c76ef
-version = "1.0.0"
-
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin)
+    id("maven-publish")
 }
 
 android {
@@ -14,42 +13,42 @@ android {
         minSdk = 24
     }
 
-    buildTypes {
-        named("release") {
-            isMinifyEnabled = false
+    publishing {
+        singleVariant("release") {
+            withSourcesJar()
         }
-    }
-
-    androidResources {
-        enable = false
-    }
-
-    buildFeatures {
-        buildConfig = false
-        resValues = false
-    }
-
-    androidComponents {
-        beforeVariants(selector().withBuildType("release")) { variantBuilder ->
-            variantBuilder.enable = false
-        }
-    }
-}
-
-kotlin {
-    jvmToolchain(21)
-
-    compilerOptions {
-        freeCompilerArgs.addAll(
-            "-Xno-call-assertions",
-            "-Xno-param-assertions",
-            "-Xno-receiver-assertions",
-        )
     }
 }
 
 dependencies {
-    compileOnly(libs.kotlin.stdlib)
-    // Filling in some gaps w.r.t annotations
-    compileOnly(libs.appcompat)
+    compileOnly(libs.annotation)
+}
+
+kotlin {
+    jvmToolchain(21)
+}
+
+
+afterEvaluate {
+    publishing {
+        publications {
+            create<MavenPublication>("release") {
+                groupId = "com.aliucord"
+                artifactId = "webrtc"
+                version = "0.0.1"
+
+                from(components["release"])
+            }
+        }
+
+        repositories {
+            maven {
+                url = uri("https://maven.aliucord.com/releases")
+                credentials {
+                    username = System.getenv("MAVEN_RELEASE_USERNAME")
+                    password = System.getenv("MAVEN_RELEASE_PASSWORD")
+                }
+            }
+        }
+    }
 }
