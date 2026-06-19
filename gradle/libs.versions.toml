@@ -1,11 +1,18 @@
 [versions]
+aliucord-gradle = "2.3.0"
 android-gradle = "8.13.2"
 annotation = "1.10.0"
+discord = "126021"
 kotlin = "2.3.0"
+#noinspection GradleDependency
+kotlin-stdlib = "1.5.21"
 
 [libraries]
 annotation = { module = "androidx.annotation:annotation", version.ref = "annotation" }
+discord = { module = "com.discord:discord", version.ref = "discord" }
+kotlin-stdlib = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin-stdlib" }
 
 [plugins]
+aliucord-injector = { id = "com.aliucord.injector", version.ref = "aliucord-gradle" }
 android-library = { id = "com.android.library", version.ref = "android-gradle" }
 kotlin = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }

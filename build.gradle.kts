@@ -6,6 +6,7 @@ import java.nio.file.Files
 import java.nio.file.StandardCopyOption
 
 plugins {
+    alias(libs.plugins.aliucord.injector)
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin)
     id("maven-publish")
@@ -29,10 +30,20 @@ android {
 
 dependencies {
     compileOnly(libs.annotation)
+    compileOnly(libs.discord)
+    compileOnly(libs.kotlin.stdlib)
 }
 
 kotlin {
     jvmToolchain(21)
+
+    compilerOptions {
+        freeCompilerArgs.addAll(
+            "-Xno-call-assertions",
+            "-Xno-param-assertions",
+            "-Xno-receiver-assertions",
+        )
+    }
 }
 
 private fun exec(vararg cmd: String) {
@@ -57,9 +68,10 @@ val injectWebrtcDex by tasks.registering {
         require(classesJar.exists()) { "classes.jar missing in AAR" }
 
         val sdk = android.sdkDirectory
-        val buildTools = File(sdk, "build-tools").listFiles()
-            ?.filter { it.isDirectory }
-            ?.maxByOrNull { it.name }
+        val buildToolsVersion = "36.0.0"
+        val buildToolsRoot = File(sdk, "build-tools")
+        val buildTools = File(buildToolsRoot, buildToolsVersion).takeIf { it.isDirectory }
+            ?: buildToolsRoot.listFiles()?.filter { it.isDirectory }?.maxByOrNull { it.name }
             ?: error("No build-tools installed in $sdk")
         val isWindows = System.getProperty("os.name").startsWith("Windows", ignoreCase = true)
         val d8 = File(buildTools, if (isWindows) "d8.bat" else "d8")
@@ -74,13 +86,17 @@ val injectWebrtcDex by tasks.registering {
             classesJar.absolutePath,
         )
 
-        val webrtcDex = File(work, "webrtc.dex")
-        File(work, "classes.dex").copyTo(webrtcDex, overwrite = true)
+        val dexes = work.listFiles { f -> f.isFile && f.name.endsWith(".dex") }
+            ?.sortedBy { it.name }
+            ?: error("d8 produced no dex output")
 
         FileSystems.newFileSystem(URI("jar:${aar.toURI()}"), mapOf("create" to "false")).use { fs ->
-            Files.copy(webrtcDex.toPath(), fs.getPath("/webrtc.dex"), StandardCopyOption.REPLACE_EXISTING)
+            for (dex in dexes) {
+                val entryName = if (dex.name == "classes.dex") "webrtc.dex" else dex.name
+                Files.copy(dex.toPath(), fs.getPath("/$entryName"), StandardCopyOption.REPLACE_EXISTING)
+            }
         }
-        logger.lifecycle("Injected webrtc.dex into ${aar.name}")
+        logger.lifecycle("Injected ${dexes.size} dex file(s) into ${aar.name}")
     }
 }
 
