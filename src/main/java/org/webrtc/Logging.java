@@ -45,6 +45,12 @@ public class Logging {
   @Nullable private static Loggable loggable;
   private static Severity loggableSeverity;
 
+  public interface ExternalReporter {
+    void e(String tag, String message, Throwable throwable);
+  }
+
+  public static ExternalReporter externalReporter;
+
   private static Logger createFallbackLogger() {
     final Logger fallbackLogger = Logger.getLogger("org.webrtc.Logging");
     fallbackLogger.setLevel(Level.ALL);
@@ -161,6 +167,10 @@ public class Logging {
 
   public static void e(String tag, String message) {
     log(Severity.LS_ERROR, tag, message);
+    ExternalReporter reporter = externalReporter;
+    if (reporter != null) {
+      reporter.e(tag, message, null);
+    }
   }
 
   public static void w(String tag, String message) {
@@ -171,6 +181,10 @@ public class Logging {
     log(Severity.LS_ERROR, tag, message);
     log(Severity.LS_ERROR, tag, e.toString());
     log(Severity.LS_ERROR, tag, getStackTraceString(e));
+    ExternalReporter reporter = externalReporter;
+    if (reporter != null) {
+      reporter.e(tag, message, e);
+    }
   }
 
   public static void w(String tag, String message, Throwable e) {
