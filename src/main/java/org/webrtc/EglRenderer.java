@@ -131,10 +131,6 @@ public class EglRenderer implements VideoSink {
   private boolean usePresentationTimeStamp;
   private final Matrix drawMatrix = new Matrix();
 
-  private volatile float zoom = 1f;
-  private volatile float panX = 0f;
-  private volatile float panY = 0f;
-
   // Pending frame to render. Serves as a queue with size 1. Synchronized on `frameLock`.
   private final Object frameLock = new Object();
   @Nullable private VideoFrame pendingFrame;
@@ -389,13 +385,6 @@ public class EglRenderer implements VideoSink {
     synchronized (layoutLock) {
       this.layoutAspectRatio = layoutAspectRatio;
     }
-  }
-
-  public void setZoom(float zoom, float panX, float panY) {
-    this.zoom = Math.max(1f, zoom);
-    float lim = 0.5f * (1f - 1f / this.zoom);
-    this.panX = Math.max(-lim, Math.min(lim, panX));
-    this.panY = Math.max(-lim, Math.min(lim, panY));
   }
 
   /**
@@ -739,15 +728,10 @@ public class EglRenderer implements VideoSink {
       scaleY = frameAspectRatio / drawnAspectRatio;
     }
 
-    final float zoom = this.zoom;
-    final float panX = this.panX;
-    final float panY = this.panY;
     drawMatrix.reset();
     drawMatrix.preTranslate(0.5f, 0.5f);
     drawMatrix.preScale(mirrorHorizontally ? -1f : 1f, mirrorVertically ? -1f : 1f);
     drawMatrix.preScale(scaleX, scaleY);
-    drawMatrix.preScale(1f / zoom, 1f / zoom);
-    drawMatrix.preTranslate(-panX, -panY);
     drawMatrix.preTranslate(-0.5f, -0.5f);
 
     try {
