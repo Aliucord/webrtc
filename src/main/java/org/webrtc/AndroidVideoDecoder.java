@@ -27,7 +27,7 @@ import java.util.concurrent.*;
 /**
  * Android hardware video decoder.
  */
-class AndroidVideoDecoder implements VideoDecoder, VideoSink {
+public class AndroidVideoDecoder implements VideoDecoder, VideoSink {
   private static final String TAG = "AndroidVideoDecoder";
 
   // MediaCodec.release() occasionally hangs.  Release stops waiting and reports failure after
