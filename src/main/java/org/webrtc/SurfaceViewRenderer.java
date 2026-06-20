@@ -14,9 +14,14 @@ import android.content.Context;
 import android.content.res.Resources.NotFoundException;
 import android.graphics.Point;
 import android.os.Looper;
+import android.os.SystemClock;
 import android.util.AttributeSet;
+import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.ViewConfiguration;
+import android.view.ViewParent;
 
 /**
  * Display the video stream on a SurfaceView.
@@ -41,6 +46,22 @@ public class SurfaceViewRenderer extends SurfaceView
   private int surfaceWidth;
   private int surfaceHeight;
 
+  private static final float MAX_ZOOM = 8f;
+  private ScaleGestureDetector scaleDetector;
+  private int touchSlop;
+  private float zoom = 1f;
+  private float panX = 0f;
+  private float panY = 0f;
+  private float lastTouchX;
+  private float lastTouchY;
+  private float downX;
+  private float downY;
+  private boolean moved;
+  private int activePointerId = MotionEvent.INVALID_POINTER_ID;
+  private long lastTapMs = 0;
+  private int lastMeasuredWidth = -1;
+  private int lastMeasuredHeight = -1;
+
   /**
    * Standard View constructor. In order to render something, you must first call init().
    */
@@ -50,6 +71,7 @@ public class SurfaceViewRenderer extends SurfaceView
     eglRenderer = new SurfaceEglRenderer(resourceName);
     getHolder().addCallback(this);
     getHolder().addCallback(eglRenderer);
+    setupGestures(context);
   }
 
   /**
@@ -61,6 +83,7 @@ public class SurfaceViewRenderer extends SurfaceView
     eglRenderer = new SurfaceEglRenderer(resourceName);
     getHolder().addCallback(this);
     getHolder().addCallback(eglRenderer);
+    setupGestures(context);
   }
 
   /**
@@ -185,6 +208,94 @@ public class SurfaceViewRenderer extends SurfaceView
     eglRenderer.onFrame(frame);
   }
 
+  private void setupGestures(Context context) {
+    touchSlop = ViewConfiguration.get(context).getScaledTouchSlop();
+    scaleDetector = new ScaleGestureDetector(context, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+      @Override
+      public boolean onScale(ScaleGestureDetector detector) {
+        zoom = Math.clamp(zoom * detector.getScaleFactor(), 1f, MAX_ZOOM);
+        applyZoom();
+        return true;
+      }
+    });
+  }
+
+  private void applyZoom() {
+    float lim = 0.5f * (1f - 1f / zoom);
+    panX = Math.max(-lim, Math.min(lim, panX));
+    panY = Math.max(-lim, Math.min(lim, panY));
+    eglRenderer.setZoom(zoom, panX, panY);
+  }
+
+  private void resetZoom() {
+    zoom = 1f;
+    panX = 0f;
+    panY = 0f;
+    applyZoom();
+  }
+
+  @Override
+  public boolean dispatchTouchEvent(MotionEvent event) {
+    Logging.d(TAG, Logging.str(resourceName, "dispatchTouchEvent(). event: " + event));
+    scaleDetector.onTouchEvent(event);
+    switch (event.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        long now = SystemClock.uptimeMillis();
+        if (now - lastTapMs < 300 && zoom > 1f) {
+          resetZoom();
+          lastTapMs = 0;
+        } else {
+          lastTapMs = now;
+        }
+        downX = lastTouchX = event.getX();
+        downY = lastTouchY = event.getY();
+        activePointerId = event.getPointerId(0);
+        moved = false;
+        if (zoom > 1f) disallowIntercept(true);
+        break;
+      case MotionEvent.ACTION_POINTER_DOWN:
+        disallowIntercept(true);
+        break;
+      case MotionEvent.ACTION_MOVE:
+        if (!scaleDetector.isInProgress() && zoom > 1f
+            && activePointerId != MotionEvent.INVALID_POINTER_ID) {
+          int idx = event.findPointerIndex(activePointerId);
+          if (idx >= 0) {
+            float x = event.getX(idx);
+            float y = event.getY(idx);
+            panX -= (x - lastTouchX) / (Math.max(1, getWidth()) * zoom);
+            panY -= (y - lastTouchY) / (Math.max(1, getHeight()) * zoom);
+            lastTouchX = x;
+            lastTouchY = y;
+            applyZoom();
+          }
+        }
+        if (scaleDetector.isInProgress() || zoom > 1f) disallowIntercept(true);
+        if (Math.hypot(event.getX() - downX, event.getY() - downY) > touchSlop) {
+          moved = true;
+        }
+        break;
+      case MotionEvent.ACTION_UP:
+      case MotionEvent.ACTION_CANCEL:
+        activePointerId = MotionEvent.INVALID_POINTER_ID;
+        disallowIntercept(false);
+        break;
+      case MotionEvent.ACTION_POINTER_UP:
+        activePointerId = MotionEvent.INVALID_POINTER_ID;
+        break;
+    }
+    if (scaleDetector.isInProgress() || event.getPointerCount() > 1 || (zoom > 1f && moved)) {
+      return true;
+    }
+    return super.dispatchTouchEvent(event);
+  }
+
+  private void disallowIntercept(boolean disallow) {
+    Logging.d(TAG, Logging.str(resourceName, "disallowIntercept(). disallow: " + disallow));
+    ViewParent parent = getParent();
+    if (parent != null) parent.requestDisallowInterceptTouchEvent(disallow);
+  }
+
   // View layout interface.
   @Override
   protected void onMeasure(int widthSpec, int heightSpec) {
@@ -192,7 +303,11 @@ public class SurfaceViewRenderer extends SurfaceView
     Point size =
         videoLayoutMeasure.measure(widthSpec, heightSpec, rotatedFrameWidth, rotatedFrameHeight);
     setMeasuredDimension(size.x, size.y);
-    Logging.d(TAG, Logging.str(resourceName, "onMeasure(). New size: " + size.x + "x" + size.y));
+    if (size.x != lastMeasuredWidth || size.y != lastMeasuredHeight) {
+      lastMeasuredWidth = size.x;
+      lastMeasuredHeight = size.y;
+      Logging.d(TAG, Logging.str(resourceName, "onMeasure(). New size: " + size.x + "x" + size.y));
+    }
   }
 
   @Override
@@ -281,6 +396,7 @@ public class SurfaceViewRenderer extends SurfaceView
     postOrRun(() -> {
       rotatedFrameWidth = rotatedWidth;
       rotatedFrameHeight = rotatedHeight;
+      resetZoom();
       updateSurfaceSize();
       requestLayout();
     });
