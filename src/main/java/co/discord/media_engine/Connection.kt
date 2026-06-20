@@ -305,6 +305,9 @@ class Connection(private val native: NativeConnection, streamParameters: Discord
 
     fun getMLSKeyPackageB64(callback: NativeConnection.MLSKeyPackageCallback) = native.getMLSKeyPackageB64(callback)
 
+    fun getMLSPairwiseFingerprintB64(version: Int, userId: String, callback: NativeConnection.MLSPairwiseFingerprintCallback) =
+        native.getMLSPairwiseFingerprintB64(version, userId, callback)
+
     fun prepareMLSCommitTransitionB64(transitionId: Int, commit: String, callback: NativeConnection.MLSCommitTransitionCallback) {
         native.prepareMLSCommitTransitionB64(transitionId, commit, callback)
     }
