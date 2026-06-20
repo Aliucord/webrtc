@@ -2,7 +2,7 @@ package com.aliucord.voice
 
 /**
  * Voice fork ABI version. Read via reflection by the VoiceChatFix core plugin's version gate
- * ([com.aliucord.coreplugins.voice] EXPECTED_LIB_VERSION). Bump together with the bundled
+ * (EXPECTED_LIB_VERSION in the voice module). Bump together with the bundled
  * libdiscord.so / webrtc dex pairing.
  */
 object BuildConfig {
