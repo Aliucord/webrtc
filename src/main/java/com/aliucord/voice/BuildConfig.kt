@@ -7,4 +7,5 @@ package com.aliucord.voice
  */
 object BuildConfig {
     const val VERSION = "90.0.19-codec-api.b2"
+    const val LIBDISCORD_BASE = "333.5"
 }
