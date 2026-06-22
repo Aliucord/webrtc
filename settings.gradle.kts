@@ -21,4 +21,4 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "Aliuvoice"
+rootProject.name = "webrtc"
