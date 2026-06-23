@@ -44,7 +44,7 @@ afterEvaluate {
             create<MavenPublication>("release") {
                 groupId = "com.aliucord"
                 artifactId = project.name
-                version = "0.0.1"
+                version = "1.0.0"
 
                 from(components["release"])
             }
