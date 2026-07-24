@@ -168,6 +168,7 @@ public class AndroidVideoDecoder implements VideoDecoder, VideoSink {
     hasDecodedFirstFrame = false;
     keyFrameRequired = true;
 
+    Logging.d(TAG, "initDecodeInternal: creating codec " + codecName);
     try {
       codec = mediaCodecWrapperFactory.createByCodecName(codecName);
     } catch (IOException | IllegalArgumentException | IllegalStateException e) {
@@ -179,6 +180,7 @@ public class AndroidVideoDecoder implements VideoDecoder, VideoSink {
       if (sharedContext == null) {
         format.setInteger(MediaFormat.KEY_COLOR_FORMAT, colorFormat);
       }
+      Logging.d(TAG, "initDecodeInternal: configuring " + codecName);
       codec.configure(format, surface, null, 0);
       codec.start();
     } catch (IllegalStateException | IllegalArgumentException e) {

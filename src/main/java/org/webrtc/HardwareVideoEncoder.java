@@ -232,12 +232,14 @@ public class HardwareVideoEncoder implements VideoEncoder {
 
     isEncodingStatisticsEnabled = false;
 
+    Logging.d(TAG, "initEncodeInternal: creating codec " + codecName);
     try {
       codec = mediaCodecWrapperFactory.createByCodecName(codecName);
     } catch (IOException | IllegalArgumentException e) {
       Logging.e(TAG, "Cannot create media encoder " + codecName);
       return VideoCodecStatus.FALLBACK_SOFTWARE;
     }
+    Logging.d(TAG, "initEncodeInternal: codec created, building format");
 
     final int colorFormat = useSurfaceMode ? surfaceColorFormat : yuvColorFormat;
     try {
@@ -301,6 +303,7 @@ public class HardwareVideoEncoder implements VideoEncoder {
     outputThread = createOutputThread();
     outputThread.start();
 
+    Logging.d(TAG, "initEncodeInternal: started " + codecName);
     return VideoCodecStatus.OK;
   }
 

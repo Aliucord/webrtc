@@ -678,9 +678,10 @@ public class EglRenderer implements VideoSink {
       frame = pendingFrame;
       pendingFrame = null;
     }
-    // TODO: Spams when putting in background.
+    // Spams when putting in background.
+    // TODO: maybe a fix for this is necessary?
     if (eglBase == null || !eglBase.hasSurface()) {
-      Logging.d(TAG, Logging.str(name, "Dropping frame - No surface"));
+      // Logging.d(TAG, Logging.str(name, "Dropping frame - No surface"));
       frame.release();
       return;
     }
