@@ -192,7 +192,8 @@ public class SurfaceViewRenderer extends SurfaceView
     Point size =
         videoLayoutMeasure.measure(widthSpec, heightSpec, rotatedFrameWidth, rotatedFrameHeight);
     setMeasuredDimension(size.x, size.y);
-    Logging.d(TAG, Logging.str(resourceName, "onMeasure(). New size: " + size.x + "x" + size.y));
+    // Another log spammer when zooming in screenshares
+    // Logging.d(TAG, Logging.str(resourceName, "onMeasure(). New size: " + size.x + "x" + size.y));
   }
 
   @Override
